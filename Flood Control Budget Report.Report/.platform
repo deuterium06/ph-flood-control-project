@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Report",
+    "displayName": "Flood Control Budget Report"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "1cbf7dc0-a3b2-4c47-80c2-aabb5364f67c"
+  }
+}

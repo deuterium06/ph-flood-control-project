@@ -1,0 +1,20 @@
+relationship 83a14859-249d-4697-9b2b-b71b8c462de8
+	joinOnDateBehavior: datePartOnly
+	fromColumn: flood-control-data.'Completion Date'
+	toColumn: LocalDateTable_0e88e781-5fac-4059-8576-1a397a1fc8b3.Date
+
+relationship 9a5ffd26-e4ac-4e83-bf79-b086cdf17bc8
+	joinOnDateBehavior: datePartOnly
+	fromColumn: flood-control-data.'Start Date'
+	toColumn: LocalDateTable_b9936bca-6075-4b13-920f-3c9e3ab91c58.Date
+
+relationship d2ddfbe9-01a4-22cf-eae4-5e49bc6a3cf7
+	crossFilteringBehavior: bothDirections
+	toCardinality: many
+	fromColumn: flood-control-data.'Contract ID'
+	toColumn: contractors-contract-type.'Contract ID'
+
+relationship 8e9a3346-8e5c-a278-6e1f-9db15073d1b9
+	fromColumn: contractors-contract-type.Contractor
+	toColumn: 'Contractor with Others'.Contractor
+

@@ -1,0 +1,11 @@
+// Welcome to DAX query view! Learn more about DAX queries at https://aka.ms/dax-queries.
+// Right-click on tables, columns, or measures in the data pane to access quick queries, or ask Copilot for help writing DAX.
+
+// Select "Run" to try this sample DAX query.
+EVALUATE
+    RANKX (
+    ALL ('flood-control-data_2025-09-28_cleaned'[Province]),
+    SUM ('flood-control-data_2025-09-28_cleaned'[Cost] ),
+    ,
+    DESC
+)

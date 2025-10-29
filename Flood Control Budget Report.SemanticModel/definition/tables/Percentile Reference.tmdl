@@ -1,0 +1,84 @@
+table 'Percentile Reference'
+	lineageTag: d3d94c85-179a-48cf-aa32-90a9e4286aea
+
+	column Value
+		formatString: 0%;-0%;0%
+		lineageTag: 17142a75-a813-47b8-9ca4-a88dbb6c8284
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Value]
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Percentage Label' = ```
+			
+			VAR sel = ROUND([Value],2)
+			RETURN
+			SWITCH(
+			    TRUE(),
+			    sel = 0.01, "1%",
+			    sel = 0.05, "2-5%",
+			    sel = 0.10, "6-10%",
+			    sel = 0.20, "11-20%",
+			    sel = 0.30, "21-30%",
+			    sel = 0.40, "31-40%",
+			    sel = 0.50, "41-50%",
+			    sel = 0.60, "51-60%",
+			    sel = 0.70, "61-70%",
+			    sel = 0.80, "71-80%",
+			    sel = 0.90, "81-90%",
+			    sel = 1.00, "91-100%",
+			    BLANK()
+			)
+			
+			```
+		lineageTag: b966f257-328f-4f16-82a0-89acf0814a58
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column Label
+		lineageTag: c7828f26-1c7e-4b06-845d-f6352f6e826b
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Label]
+		sortByColumn: Value
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Percentile Reference' = calculated
+		mode: import
+		source = ```
+				
+				DATATABLE(
+				    "Value", DOUBLE,
+				    "Label", STRING,
+				    {
+				        {0.01, "1%"},
+				        {0.05, "2–5%"},
+				        {0.10, "6–10%"},
+				        {0.20, "11–20%"},
+				        {0.30, "21–30%"},
+				        {0.40, "31–40%"},
+				        {0.50, "41–50%"},
+				        {0.60, "51–60%"},
+				        {0.70, "61–70%"},
+				        {0.80, "71–80%"},
+				        {0.90, "81–90%"},
+				        {1.00, "91–100%"}
+				    }
+				)
+				
+				
+				// UNION (
+				//     GENERATESERIES(0.10 ,1,0.10), 
+				//     DATATABLE (                        -- one row table having value 'Others' 
+				//         "Value", DOUBLE,
+				//         { { 0.01 }, { 0.05 } }
+				//     ) 
+				// )
+				
+				```
+
+	annotation PBI_Id = 37ca7464c40a44d8a80fe5dc9cbcfe8a
+

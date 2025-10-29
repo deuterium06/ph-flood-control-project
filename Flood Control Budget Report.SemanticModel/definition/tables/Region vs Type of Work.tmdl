@@ -1,0 +1,48 @@
+table 'Region vs Type of Work'
+	lineageTag: bf2e1e0a-2995-465c-8ec6-fab6dc511cc0
+
+	column 'Region vs Type of Work'
+		lineageTag: 89378238-8664-428d-9585-7dacbc14a6dd
+		summarizeBy: none
+		sourceColumn: [Value1]
+		sortByColumn: 'Region vs Type of Work Order'
+
+		relatedColumnDetails
+			groupByColumn: 'Region vs Type of Work Fields'
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Region vs Type of Work Fields'
+		isHidden
+		lineageTag: 30a89596-4c5a-40e9-8661-9072427c35fa
+		summarizeBy: none
+		sourceColumn: [Value2]
+		sortByColumn: 'Region vs Type of Work Order'
+
+		extendedProperty ParameterMetadata =
+				{
+				  "version": 3,
+				  "kind": 2
+				}
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Region vs Type of Work Order'
+		isHidden
+		formatString: 0
+		lineageTag: 6a97ecc9-85d8-4246-94ce-69bb2f00b727
+		summarizeBy: sum
+		sourceColumn: [Value3]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Region vs Type of Work' = calculated
+		mode: import
+		source =
+				{
+				    ("Region", NAMEOF('flood-control-data'[Region]), 0),
+				    ("Type of Work", NAMEOF('flood-control-data'[Type of Work]), 1)
+				}
+
+	annotation PBI_Id = e36abc58ffb44f7487c32e541ddedc52
+

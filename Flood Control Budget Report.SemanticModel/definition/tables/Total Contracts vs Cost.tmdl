@@ -1,0 +1,48 @@
+table 'Total Contracts vs Cost'
+	lineageTag: 84856499-60d5-4512-9389-d5862a94bfb7
+
+	column 'Total Contracts vs Cost'
+		lineageTag: b717879a-22ee-41a4-864a-55b9cec31fab
+		summarizeBy: none
+		sourceColumn: [Value1]
+		sortByColumn: 'Total Contracts vs Cost Order'
+
+		relatedColumnDetails
+			groupByColumn: 'Total Contracts vs Cost Fields'
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Total Contracts vs Cost Fields'
+		isHidden
+		lineageTag: e79f94ee-971f-4c3e-8874-b4caa8ae1aa0
+		summarizeBy: none
+		sourceColumn: [Value2]
+		sortByColumn: 'Total Contracts vs Cost Order'
+
+		extendedProperty ParameterMetadata =
+				{
+				  "version": 3,
+				  "kind": 2
+				}
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Total Contracts vs Cost Order'
+		isHidden
+		formatString: 0
+		lineageTag: 4559efbf-c945-4137-8f25-97972f6200ba
+		summarizeBy: sum
+		sourceColumn: [Value3]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Total Contracts vs Cost' = calculated
+		mode: import
+		source =
+				{
+				    ("Total Contracts", NAMEOF('flood-control-data'[Total Contracts]), 0),
+				    ("Total Cost", NAMEOF('flood-control-data'[Total Cost]), 1)
+				}
+
+	annotation PBI_Id = 8d43d813f4ab4e919f3f3d94aa3f17ff
+

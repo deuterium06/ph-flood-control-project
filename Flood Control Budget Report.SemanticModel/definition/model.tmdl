@@ -1,0 +1,30 @@
+model Model
+	culture: en-US
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: en-SG
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation PBI_QueryOrder = ["flood-control-data","contractors-contract-type"]
+
+annotation __PBI_TimeIntelligenceEnabled = 1
+
+annotation PBIDesktopVersion = 2.144.878.0 (25.06)+9cca29236de5114792f4d7188221f91ad4a5cc50
+
+annotation PBI_ProTooling = ["DevMode"]
+
+ref table flood-control-data
+ref table DateTableTemplate_f3f0f0c0-2d2c-4219-80f2-38a2ecc10d5e
+ref table LocalDateTable_0e88e781-5fac-4059-8576-1a397a1fc8b3
+ref table LocalDateTable_b9936bca-6075-4b13-920f-3c9e3ab91c58
+ref table 'Contractor with Others'
+ref table contractors-contract-type
+ref table 'Total Contracts vs Cost'
+ref table Contractor
+ref table 'Region vs Type of Work'
+ref table 'Top N'
+ref table 'Percentile Reference'
+
+ref cultureInfo en-US
+

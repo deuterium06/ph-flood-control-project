@@ -1,0 +1,5 @@
+{
+  "objectId": "",
+  "type": 4,
+  "explorationState": "{\"version\":\"1.8\",\"activeSection\":\"\",\"sections\":{\"a793fecfa91810a3826c\":{\"visualContainers\":{\"79d1404c821529953291\":{\"singleVisual\":{\"visualType\":\"filledMap\",\"mobileObjects\":{\"mapStyles\":[],\"dataPoint\":[],\"mapControls\":[{\"properties\":{\"autoZoom\":{\"expr\":{\"Literal\":{\"Value\":\"false\"}}},\"showZoomButtons\":{\"expr\":{\"Literal\":{\"Value\":\"false\"}}},\"centerLatitude\":{\"expr\":{\"Literal\":{\"Value\":\"-0.7820370098863947D\"}}},\"centerLongitude\":{\"expr\":{\"Literal\":{\"Value\":\"125.776540976851D\"}}},\"zoomLevel\":{\"expr\":{\"Literal\":{\"Value\":\"4D\"}}},\"showLassoButton\":{\"expr\":{\"Literal\":{\"Value\":\"false\"}}}}}]}}}}}}}"
+}

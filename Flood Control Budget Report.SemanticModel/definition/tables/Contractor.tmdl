@@ -1,0 +1,17 @@
+table Contractor
+	lineageTag: a30a65ef-276d-446f-9fbf-feec7a4de06c
+
+	column Contractor
+		lineageTag: 1e26013f-a170-4299-ab9f-cbebeec6dc36
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: contractors-contract-type[Contractor]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Contractor = calculated
+		mode: import
+		source = DISTINCT ( 'contractors-contract-type'[Contractor] )
+
+	annotation PBI_Id = bbc818783a40473386bbfe2a4f76e415
+

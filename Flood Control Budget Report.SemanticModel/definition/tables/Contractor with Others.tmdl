@@ -1,0 +1,26 @@
+table 'Contractor with Others'
+	lineageTag: 168cf1eb-ff8c-40bd-abb8-8077747b2cbc
+
+	column Contractor
+		lineageTag: 1482b650-de4b-4cb9-ab24-4fd14c90def8
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: contractors-contract-type[Contractor]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Contractor with Others' = calculated
+		mode: import
+		source = ```
+				
+				UNION (
+				    DISTINCT ( 'contractors-contract-type'[Contractor] ),    -- to find unique names of the products 
+				    DATATABLE (                        -- one row table having value 'Others' 
+				        "Contractor", STRING,
+				        { { "Others" }, { "Top Contractors"} }
+				    ) 
+				)
+				```
+
+	annotation PBI_Id = 19f5131238ab4f9191c541120ccea36f
+

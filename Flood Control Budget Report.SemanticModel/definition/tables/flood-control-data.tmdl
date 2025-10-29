@@ -1,0 +1,1221 @@
+table flood-control-data
+	lineageTag: 425fa0d3-9440-4ef4-baad-e20e087fb580
+
+	measure ProvinceRank = ```
+			
+			RANKX (
+			    ALL ( 'flood-control-data'[Province] ),
+			    CALCULATE ( SUM ( 'flood-control-data'[Cost] ) ),
+			    ,
+			    DESC
+			)
+			
+			```
+		formatString: 0
+		lineageTag: 73a882d2-c3d1-4b20-9ead-52c6f28c1cf2
+
+	measure 'Ave Contribution per Filipino' = DIVIDE(SUM('flood-control-data'[Cost]), 117000000)
+		formatString: "₱"#,0;-"₱"#,0;"₱"#,0
+		lineageTag: 6222cd2e-3939-4f8e-83c4-46167c3fd723
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-PH"}
+
+	measure 'Average Cost per Contract' = SUM('flood-control-data'[Cost]) / DISTINCTCOUNT('flood-control-data'[Contract ID])
+		formatString: "₱"#,0.00;-"₱"#,0.00;"₱"#,0.00
+		lineageTag: bd962312-d024-461d-aa07-94482e1065cd
+
+		annotation PBI_FormatHint = {"currencyCulture":"ceb-Latn-PH"}
+
+	measure 'Shade X-Axis' = PERCENTILEX.INC('flood-control-data', CALCULATE(DISTINCTCOUNT('flood-control-data'[Contract ID]), ALLEXCEPT('flood-control-data', 'flood-control-data'[Contractor])), 0.90)
+		lineageTag: ef18815e-83f9-43e8-9183-cd5964540562
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Shade Y-Axis' = PERCENTILEX.INC('flood-control-data', CALCULATE(SUM('flood-control-data'[Cost]), ALLEXCEPT('flood-control-data', 'flood-control-data'[Contractor])), 0.90)
+		lineageTag: e01cbb11-8041-4aa2-8e4b-0a56a32573ad
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure HTML_CostTable = ```
+			
+			VAR _RowsHtml =
+			    CONCATENATEX(
+			        TOPN(1000,'flood-control-data'),
+			        "<tr>" &
+			            "<td style=""padding:6px"">" & COALESCE( FORMAT( [Contract ID], "" ), "" ) & "</td>" &
+			            "<td style=""padding:6px;text-align:left"">" & FORMAT( [Contractor], "" ) & "</td>" &
+			            "<td style=""padding:6px;text-align:left"">" & FORMAT( [Type of Work], "" ) & "</td>" &
+			            "<td style=""padding:6px;text-align:left"">" & FORMAT( [Province], "" ) & "</td>" &
+			            "<td style=""padding:6px;text-align:left"">" & FORMAT( [Cost], "#,##0.00" ) & "</td>" &
+			            "<td style=""padding:6px;text-align:left"">" & FORMAT( [Start Date], "mm/dd/yyyy" ) & "</td>" &
+			            "<td style=""padding:6px;text-align:left"">" & FORMAT( [Completion Date], "mm/dd/yyyy" ) & "</td>" &
+			            "<td style=""padding:6px;text-align:left"">" & FORMAT( [Project Cost Flag], "" ) & "</td>" &
+			        "</tr>",
+			        ""
+			    )
+			
+			VAR _HtmlHeader =
+			    "<table style=""border-collapse:collapse;width:100%;font-family:Segoe UI, Arial, sans-serif;font-size:12px;border:1px solid #ddd;"">" &
+			    "<thead><tr style=""background:#f5f5f5"">" &
+			        "<th style=""text-align:left;padding:8px;border-bottom:1px solid #ddd"">Contract ID</th>" &
+			        "<th style=""text-align:left;padding:8px;border-bottom:1px solid #ddd"">Contractor</th>" &
+			        "<th style=""text-align:left;padding:8px;border-bottom:1px solid #ddd"">Type of Work</th>" &
+			        "<th style=""text-align:left;padding:8px;border-bottom:1px solid #ddd"">Province</th>" &
+			        "<th style=""text-align:left;padding:8px;border-bottom:1px solid #ddd"">Project Cost</th>" &
+			        "<th style=""text-align:left;padding:8px;border-bottom:1px solid #ddd"">Start Date</th>" &
+			        "<th style=""text-align:left;padding:8px;border-bottom:1px solid #ddd"">Completion Date</th>" &
+			        "<th style=""text-align:left;padding:8px;border-bottom:1px solid #ddd"">Project Cost Flag</th>" &
+			    "</tr></thead><tbody>"
+			
+			VAR _HtmlFooter = "</tbody></table>"
+			
+			RETURN
+			    _HtmlHeader & _RowsHtml & _HtmlFooter
+			
+			```
+		lineageTag: d9c3c15e-312f-4845-be52-8d1f6bca0ab6
+
+	measure 'Cost Variance from Average' = ```
+			
+			CALCULATE(SUM([Cost]), ALLEXCEPT('flood-control-data', 'flood-control-data'[Contractor])) 
+			-
+			CALCULATE(AVERAGEX(SUMMARIZE('flood-control-data', 'flood-control-data'[Contractor],"sumCost",SUM([Cost])),[sumCost]),ALL('flood-control-data'))
+			```
+		lineageTag: 737b6581-68cb-4bf5-9246-031ade10bbe9
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Top N Average Cost per Contract' = ```
+			
+			VAR TopTable =
+			    TOPN (
+			        5,
+			        ALLSELECTED ( 'Contractor with Others' ),
+			        [Average Cost per Contract]
+			    )
+			VAR TopContracts =
+			    CALCULATE (
+			        [Average Cost per Contract],
+			        KEEPFILTERS (TopTable)
+			    )
+			VAR OtherContracts =
+			    CALCULATE (                  
+			        [Average Cost per Contract],
+			        FILTER(ALLSELECTED ( 'Contractor with Others' ), NOT('Contractor with Others'[Contractor] IN TopTable))
+			    )
+			VAR CurrentProd =
+			    SELECTEDVALUE ( 'Contractor with Others'[Contractor] )
+			RETURN
+			    IF (                                     -- Categorizing as Others and Top Products
+			        CurrentProd <> "Others",
+			        TopContracts,
+			        OtherContracts
+			    )
+			```
+		lineageTag: df9b4ade-9afd-4277-ac9f-492bcd6323e5
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Distinct Contractors' = DISTINCTCOUNT('contractors-contract-type'[Contractor])
+		formatString: #,0
+		lineageTag: 5ae519c7-d032-4ddd-a153-f172e22891a4
+
+	measure 'Distinct Provinces' = DISTINCTCOUNT('flood-control-data'[Province])
+		formatString: 0
+		lineageTag: aae35067-89e9-47f1-8a31-66858a52099c
+
+	measure 'Total Cost' = SUM('flood-control-data'[Cost])
+		lineageTag: a033bbe4-b553-4a5c-8a7d-9b4ec119e1e2
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Total Contracts' = DISTINCTCOUNT('flood-control-data'[Contract ID])
+		formatString: 0
+		lineageTag: da589f94-93a1-4ff5-9c40-7bb46135dde4
+
+	measure 'Top 1 Average Cost per Contract' = ```
+			
+			VAR TopTable =
+			    TOPN (
+			        1,
+			        ALLSELECTED ( 'Contractor' ),
+			        [Average Cost per Contract]
+			    )
+			VAR TopContracts =
+			    CALCULATE (
+			        [Average Cost per Contract],
+			        KEEPFILTERS (TopTable)
+			    )
+			VAR OtherContracts =
+			    CALCULATE (                  
+			        [Average Cost per Contract],
+			        FILTER(ALL ( 'Contractor with Others' ), NOT('Contractor with Others'[Contractor] IN TopTable))
+			    )
+			VAR DisconnectedContract =
+			    SELECTEDVALUE ( 'Contractor'[Contractor] )
+			VAR CurrentContract = SELECTEDVALUE('Contractor with Others'[Contractor])
+			RETURN
+			    IF (                                     -- Categorizing as Others and Top Products
+			        CurrentContract = DisconnectedContract,
+			        TopContracts,
+			        IF(CurrentContract = "Others", OtherContracts, BLANK())
+			    )
+			```
+		lineageTag: 5b4cad5a-81cb-4c33-b5a5-286b26b007ac
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Contractor Contracts vs Cost' = ```
+			
+			VAR selectedVal = SELECTEDVALUE('Total Contracts vs Cost'[Total Contracts vs Cost Fields])
+			RETURN
+			IF(
+			    CONTAINSSTRING(selectedVal, "Total Cost"), 
+			    CALCULATE([Total Cost], 'Contractor with Others'[Contractor] = SELECTEDVALUE(Contractor[Contractor])),
+			    CALCULATE([Total Contracts], 'Contractor with Others'[Contractor] = SELECTEDVALUE(Contractor[Contractor]))
+			)
+			```
+		lineageTag: 1ae65fe0-fc55-464f-81f6-363d26303b31
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Contractor Total Cost' = CALCULATE([Total Cost], 'Contractor with Others'[Contractor] = SELECTEDVALUE('Contractor'[Contractor]))
+		formatString: "₱"#,0.00;-"₱"#,0.00;"₱"#,0.00
+		lineageTag: 46d17b25-37bb-4da2-bd92-4f6cbb8426fc
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-PH"}
+
+	measure 'Contractor Total Contracts' = CALCULATE([Total Contracts], 'Contractor with Others'[Contractor] = SELECTEDVALUE('Contractor'[Contractor]))
+		formatString: 0
+		lineageTag: 0fe931ab-726e-4638-b0ba-b3672729cf76
+
+	measure 'Contractor Avg Cost per Contract' = CALCULATE([Average Cost per Contract], 'Contractor with Others'[Contractor] = SELECTEDVALUE('Contractor'[Contractor]))
+		formatString: "₱"#,0.00;-"₱"#,0.00;"₱"#,0.00
+		lineageTag: 25d1a7f3-955c-4137-b0a6-0c338d8aad60
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-PH"}
+
+	measure 'Top 1 Total Cost' = ```
+			
+			VAR selectedTotal = [Contractor Avg Cost per Contract]
+			VAR otherTotal =
+			    CALCULATE (                  
+			        AVERAGE('flood-control-data'[Cost]),
+			        ALLSELECTED('Contractor with Others'[Contractor])
+			    )
+			VAR DisconnectedContract =
+			    SELECTEDVALUE ( 'Contractor'[Contractor] )
+			VAR CurrentContract = SELECTEDVALUE('Contractor with Others'[Contractor])
+			RETURN
+			    IF (                                     -- Categorizing as Others and Top Products
+			        CurrentContract = DisconnectedContract,
+			        selectedTotal,
+			        IF(CurrentContract = "Others", otherTotal, BLANK())
+			    )
+			```
+		lineageTag: d085efd5-0746-4d58-aa4c-427867e17ab9
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Top 1 Total Contracts' = ```
+			
+			VAR otherTotal =
+			    AVERAGEX(ALLSELECTED('Contractor with Others'[Contractor]), CALCULATE(DISTINCTCOUNT('contractors-contract-type'[Contract ID])))
+			VAR selectedTotal = [Contractor Total Contracts]
+			
+			VAR DisconnectedContract =
+			    SELECTEDVALUE ( 'Contractor'[Contractor] )
+			VAR CurrentContract = SELECTEDVALUE('Contractor with Others'[Contractor])
+			
+			RETURN
+			    IF (        
+			        CurrentContract = DisconnectedContract,
+			        selectedTotal,
+			        IF(CurrentContract = "Others", otherTotal, BLANK())
+			    )
+			```
+		formatString: 0
+		lineageTag: 089859a8-2706-45d3-9c9d-415e0398cf77
+
+	measure 'Is Selected Contractor' = IF(SELECTEDVALUE('contractors-contract-type'[Contractor]) = SELECTEDVALUE(Contractor[Contractor]), 0.5, 0)
+		formatString: 0
+		lineageTag: e5d84995-fa68-4fb4-8ae3-f7b27bfceec3
+
+	measure 'vs Others Total Contracts' =
+			
+			VAR num = [Contractor Total Contracts]
+			VAR den =      AVERAGEX(ALLSELECTED('Contractor with Others'[Contractor]), CALCULATE(DISTINCTCOUNT('contractors-contract-type'[Contract ID])))
+			RETURN
+			num-den
+		formatString: 0%;-0%;0%
+		lineageTag: 6cd1b930-d103-4d1b-8f85-e6315681976f
+
+	measure 'vs Others Avg Cost per Contract' = ```
+			
+			VAR num = [Contractor Avg Cost per Contract]
+			VAR den =  CALCULATE (                  
+			        AVERAGE('flood-control-data'[Cost]),
+			        ALLSELECTED('Contractor with Others'[Contractor])
+			    )
+			RETURN
+			DIVIDE(num-den, den)
+			```
+		formatString: 0%;-0%;0%
+		lineageTag: 398f0800-6b25-47ef-a8c3-a85228c9ccb3
+
+	measure 'label vs Others Avg Contract' = ```
+			
+			VAR base = FORMAT(ABS([vs Others Avg Cost per Contract]),"0%")
+			VAR highLow = IF([vs Others Avg Cost per Contract] >= 0, "higher", "lower")
+			VAR highLowChar = IF([vs Others Avg Cost per Contract] >= 0, "▲", "▼")
+			VAR _Value = highLowChar & " " & CONVERT(base, STRING) & " " & highLow
+			
+			VAR _StartText = "<div style=color:#FFFFFF;'><b><style> span "
+			VAR _EndText = "</span></b> vs other contractors </div>"
+			
+			RETURN
+			IF ( 
+			    [vs Others Avg Cost per Contract] > 0, 
+			    _StartText & "{color:#E68F96;} </style><span>" & _Value & _EndText, 
+			    _StartText & "{color:#68DE8A;} </style><span>" & _Value & _EndText )
+			
+			```
+		lineageTag: 28eb2945-881d-4bb4-a4e4-b0f7855bad51
+
+	measure 'label vs Others Total Contracts' = ```
+			
+			VAR base = FORMAT([vs Others Total Contracts],"#")
+			VAR highLow = IF([vs Others Total Contracts] >= 0, "more", "lesser")
+			VAR highLowChar = IF([vs Others Total Contracts] >= 0, "▲", "▼")
+			VAR _Value = highLowChar & " " & CONVERT(base, STRING) & " " & highLow
+			
+			VAR _StartText = "<div style=color:#FFFFFF;'><b><style> span "
+			VAR _EndText = "</span></b> vs other contractors </div>"
+			
+			RETURN
+			IF ( 
+			    [vs Others Avg Cost per Contract] > 0, 
+			    _StartText & "{color:#E68F96;} </style><span>" & _Value & _EndText, 
+			    _StartText & "{color:#68DE8A;} </style><span>" & _Value & _EndText )
+			```
+		lineageTag: 6420831d-3754-4119-8e74-312f2d08a44e
+
+	measure 'HTML Measure' = ```
+			
+			
+			VAR _Value = [vs Others Total Contracts]
+			
+			VAR _StartText = "<style> span "
+			
+			VAR _EndText = "</span> vs other contractors"
+			
+			RETURN
+			
+			IF ( 
+			    _Value > 0, 
+			    _StartText & "{color:#48e21a;} </style><span>" & _Value & _EndText, 
+			    _StartText & "{color:#ff0000;} </style><span>" & _Value & _EndText )
+			```
+		lineageTag: ba614125-6910-4042-b297-e6a7db24312b
+
+	measure 'Color Avg Cost per Contract' = ```
+			
+			IF(
+			    SELECTEDVALUE('Contractor with Others'[Contractor]) = SELECTEDVALUE(Contractor[Contractor]),
+			    IF ( 
+			        [vs Others Avg Cost per Contract] > 0, 
+			        "#E68F96", 
+			        "#68DE8A"
+			    ),
+			    "#B3B3B3"
+			)
+			```
+		lineageTag: 3475c13b-abc7-47f9-9c44-fa4cd1e76c31
+
+	measure 'Color Total Contract' = ```
+			
+			IF(
+			    SELECTEDVALUE('Contractor with Others'[Contractor]) = SELECTEDVALUE(Contractor[Contractor]),
+			    IF ( 
+			        [vs Others Total Contracts] > 0, 
+			        "#E68F96", 
+			        "#68DE8A"
+			    ),
+			    "#B3B3B3"
+			)
+			```
+		lineageTag: ae86c11a-5455-4853-8834-5fe9b288ac36
+
+	measure Measure
+		lineageTag: d204d5cd-5acb-456d-af76-3cadf9320bf8
+
+		annotation 43dbc3e8-3a1c-4b6f-9923-b49ff7d6691c = True
+
+	measure 'Average Contract Duration' = AVERAGE('flood-control-data'[Contract Duration])
+		lineageTag: a36c02c8-c65c-49e8-a717-8bb9d2dd1425
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Contractor Avg Contract Duration' = CALCULATE([Average Contract Duration], 'Contractor with Others'[Contractor] = SELECTEDVALUE('Contractor'[Contractor]))
+		lineageTag: 43bcbf66-e62a-4b96-96b9-cf21038a180b
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'vs Others Avg Contract Duration' = ```
+			
+			VAR num = [Contractor Avg Contract Duration]
+			VAR den =  CALCULATE (                  
+			        [Average Contract Duration],
+			        ALLSELECTED('Contractor with Others'[Contractor])
+			    )
+			RETURN
+			num-den
+			```
+		formatString: 0
+		lineageTag: 1f2c5c20-c678-4534-85fa-8afe96649e1c
+
+	measure 'label vs Others Avg Contract Duration' = ```
+			
+			VAR base = FORMAT(ABS([vs Others Avg Contract Duration]),"#")
+			VAR highLow = IF([vs Others Avg Contract Duration] >= 0, "days longer", "days shorter")
+			VAR highLowChar = IF([vs Others Avg Contract Duration] >= 0, "▲", "▼")
+			VAR _Value = highLowChar & " " & CONVERT(base, STRING) & " " & highLow
+			
+			VAR _StartText = "<div style=color:#FFFFFF;'><b><style> span "
+			VAR _EndText = "</span></b> vs other contractors </div>"
+			
+			RETURN
+			IF ( 
+			    [vs Others Avg Cost per Contract] > 0, 
+			    _StartText & "{color:#E68F96;} </style><span>" & _Value & _EndText, 
+			    _StartText & "{color:#68DE8A;} </style><span>" & _Value & _EndText )
+			
+			```
+		lineageTag: 630184fe-2e78-47f7-91c3-1ead10757b92
+
+	measure 'Top 1 Average Contract Duration' = ```
+			
+			VAR selectedTotal = [Contractor Avg Contract Duration]
+			VAR otherTotal =
+			    CALCULATE (                  
+			        [Average Contract Duration],
+			        ALLSELECTED('Contractor with Others'[Contractor])
+			    )
+			VAR DisconnectedContract =
+			    SELECTEDVALUE ( 'Contractor'[Contractor] )
+			VAR CurrentContract = SELECTEDVALUE('Contractor with Others'[Contractor])
+			RETURN
+			    IF (                                     -- Categorizing as Others and Top Products
+			        CurrentContract = DisconnectedContract,
+			        selectedTotal,
+			        IF(CurrentContract = "Others", otherTotal, BLANK())
+			    )
+			```
+		lineageTag: 8369ffb8-6d48-4858-b94f-bcaed813a73d
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'HTML Anomaly Flag' = ```
+			
+			"<div style='font-family:Segoe UI; font-size:16px; color:#ffffff; line-height:1.4;'>
+			    <b><span style='font-size:20px;'>💬 How the Anomaly Flag Works</span></b><br><br>
+			
+			    The <b>Anomaly Flag</b> identifies if a project's cost is unusually high or low compared to others with the same <b>Type of Work</b>.<br><br>
+			    <table style='border-collapse:collapse; width:100%; font-size:14px; gap:2px'>
+			        <tr style='background-color:#000000;'>
+			            <th align='left'>Flag</th>
+			            <th align='left'>Condition</th>
+			            <th align='left'>Meaning</th>
+			        </tr>
+			        <tr style='color:#F0E199;'>
+			            <td><b><span style='color:#F0E199;'> Critical</span></b></td>
+			            <td><b>Cost &gt; 3× average</b></td>
+			            <td><b>Significantly higher — potential anomaly</b></td>
+			        </tr>
+			        <tr>
+			            <td><b><span style='color:#ffffff;'> High</span></b></td>
+			            <td>1.5× – 3× average</td>
+			            <td>Noticeably higher — needs review</td>
+			        </tr>
+			        <tr>
+			            <td><b><span style='color:#ffffff;'> Average</span></b></td>
+			            <td>0.8× – 1.5× average</td>
+			            <td>Within expected range</td>
+			        </tr>
+			        <tr>
+			            <td><b><span style='color:#ffffff;'> Below Average</span></b></td>
+			            <td>&lt; 0.8× average</td>
+			            <td>Lower than typical — may indicate savings or missing data</td>
+			        </tr>
+			    </table>
+			</div>"
+			
+			```
+		lineageTag: bd05d0dc-e22a-4196-b8b4-897e102741ba
+
+	measure info = ""
+		lineageTag: f323ef1e-c261-42a9-a68d-e0f03e8b2135
+
+	measure 'HTML Project Cost Insight' = ```
+			
+			VAR CurrentWorkType = SELECTEDVALUE('flood-control-data'[Type of Work])
+			VAR CurrentCost = [Contractor Avg Cost per Contract]
+			VAR AvgCostByWorkType =
+			    CALCULATE(
+			        AVERAGE('flood-control-data'[Cost]),
+			        FILTER(ALL('flood-control-data'), 'flood-control-data'[Type of Work] = CurrentWorkType)
+			    )
+			VAR CurCostRatio = DIVIDE(CurrentCost, AvgCostByWorkType)
+			VAR DiffPercent = (CurCostRatio - 1) * 100
+			VAR Flag =
+			    SWITCH(
+			        TRUE(),
+			        CurCostRatio > 3, "Critical",
+			        CurCostRatio >= 1.5 && CurCostRatio <= 3, "High",
+			        CurCostRatio >= 0.8 && CurCostRatio <= 1.5, "Average",
+			        CurCostRatio < 0.8, "Below Average"
+			    )
+			VAR FlagColor =
+			    SWITCH(
+			        Flag,
+			        "Critical", "#6B2328",
+			        "High", "#A1343C",
+			        "Average", "#E68F96",
+			        "Below Average", "#EFB5B9",
+			        "#000000"
+			    )
+			VAR FontColor =
+			    SWITCH(
+			        Flag,
+			        "Critical", "#FFFFFF",
+			        "High", "#FFFFFF",
+			        "Average", "#333333",
+			        "Below Average", "#333333",
+			        "#000000"
+			    )
+			RETURN
+			"<div style='display:flex; overflow-x:auto; gap:10px; padding:10px; white-space:nowrap;'>
+			    <div style='flex:0 0 auto; min-width:180px; font-family:Segoe UI; color:" & FontColor & "; 
+			        background-color:" & FlagColor & "; padding:12px; border-radius:10px; 
+			        box-shadow:0 1px 5px rgba(0,0,0,0.15);'>
+			        <div style='font-size:14px; font-weight:600; margin-bottom:6px;'>
+			            " & CurrentWorkType & "
+			        </div>
+			        <div style='font-size:12px; line-height:1.5;'>
+			            <b>Avg Cost:</b> ₱" & FORMAT(AvgCostByWorkType, "#,##0") & "<br>
+			            <b>Current:</b> ₱" & FORMAT(CurrentCost, "#,##0") & "<br>
+			            <b>Diff:</b> " & FORMAT(DiffPercent, "0.0") & "%<br>
+			            <b>Status:</b> <span style='font-weight:700;'>" & Flag & "</span>
+			        </div>
+			    </div>
+			</div>"
+			
+			```
+		lineageTag: 8c5b0aa1-1c0e-496a-9798-41ae35741481
+
+	measure 'Total Critical Projects' = CALCULATE(DISTINCTCOUNT('flood-control-data'[Contract ID]), 'flood-control-data'[Project Cost Flag] = "Critical")
+		formatString: 0
+		lineageTag: 17c5a854-89a2-48b8-ba49-2a69c77c5d0b
+
+	measure 'Top N Contractors with Most Critical Projects' = ```
+			
+			VAR TopTable =
+			    TOPN (
+			        5,
+			        ALLSELECTED ( 'Contractor with Others' ),
+			        [Total Critical Projects]
+			    )
+			VAR TopContracts =
+			    CALCULATE (
+			        [Total Critical Projects],
+			        KEEPFILTERS (TopTable)
+			    )
+			VAR OtherContracts =
+			    AVERAGEX(ALL('Contractor with Others'[Contractor]), [Total Contracts] + 0)
+			    // CALCULATE (                  
+			    //     [Total Critical Projects],
+			    //     FILTER(ALLSELECTED ( 'Contractor with Others' ), NOT('Contractor with Others'[Contractor] IN TopTable))
+			    // )
+			VAR CurrentProd =
+			    SELECTEDVALUE ( 'Contractor with Others'[Contractor] )
+			RETURN
+			    IF (                                     -- Categorizing as Others and Top Products
+			        CurrentProd <> "Others",
+			        TopContracts,
+			        OtherContracts
+			    )
+			```
+		formatString: 0
+		lineageTag: c8a74f67-a1ae-4973-80c6-5b3662070d0f
+
+	measure 'HTML Quadrant Chart Info' = ```
+			
+			VAR selectedContractor = SELECTEDVALUE(Contractor[Contractor])
+			VAR quadrantResult = [Quadrant Analysis] // Q1, Q2, Q3, or Q4
+			
+			VAR quadrantMeaning =
+			    SWITCH(
+			        quadrantResult,
+			        "Q2", "Top Right (High Projects / High Cost)",
+			        "Q1", "Top Left (Low Projects / High Cost)",
+			        "Q4", "Bottom Right (High Projects / Low Cost)",
+			        "Q3", "Bottom Left (Low Projects / Low Cost)",
+			        BLANK()
+			    )
+			
+			VAR quadrantExplanation =
+			    SWITCH(
+			        quadrantResult,
+			        "Q2", "Handles many projects with high total cost — possible concentration of funding; review for efficiency and fair allocation.",
+			        "Q1", "Few but very high-cost projects — may indicate specialization or potential cost anomalies needing validation.",
+			        "Q4", "Many low-cost projects — likely efficient or small-scale engagements, lower anomaly risk.",
+			        "Q3", "Few and low-cost projects — limited participation or new contractor; minimal risk but less data for analysis.",
+			        ""
+			    )
+			
+			RETURN
+			"<div style='font-family:Segoe UI; font-size:14px; color:#ffffff; line-height:1.4;'>
+			    <b>Chart Overview:</b> compares <b>contractors</b> by:
+			    <ul style='margin:2px 0 4px 14px;'>
+			        <li><b>X-axis:</b> No. of awarded projects</li>
+			        <li><b>Y-axis:</b> Total project cost</li>
+			    </ul>
+			    Each bubble = one contractor.<br>
+			
+			    <table style='border-collapse:collapse; width:100%; font-size:14px; margin-top:4px;'>
+			        <tr>
+			            <th align='left' style='padding:2px;'>Quadrant</th>
+			            <th align='left' style='padding:2px;'>Meaning</th>
+			            <th align='left' style='padding:2px;'>Interpretation</th>
+			        </tr>
+			        <tr>
+			            <td style='padding:2px;'><b>Top Right</b><br>(High Proj / High Cost)</td>
+			            <td style='padding:2px;'>High-Value</td>
+			            <td style='padding:2px;'>Large volume and budgets — funding concentration risk.</td>
+			        </tr>
+			        <tr>
+			            <td style='padding:2px;'><b>Top Left</b><br>(Low Proj / High Cost)</td>
+			            <td style='padding:2px;'>Specialized</td>
+			            <td style='padding:2px;'>Few but expensive — possible cost anomalies.</td>
+			        </tr>
+			        <tr>
+			            <td style='padding:2px;'><b>Bottom Right</b><br>(High Proj / Low Cost)</td>
+			            <td style='padding:2px;'>High-Volume</td>
+			            <td style='padding:2px;'>Many small projects — efficient or low-value.</td>
+			        </tr>
+			        <tr>
+			            <td style='padding:2px;'><b>Bottom Left</b><br>(Low Proj / Low Cost)</td>
+			            <td style='padding:2px;'>Low Engagement</td>
+			            <td style='padding:2px;'>Few and small — low exposure.</td>
+			        </tr>
+			    </table>
+			
+			    <div style='margin-top:8px; padding:6px; border:1px solid #999; border-radius:5px; background-color:#F0E199; font-size:16px; color:#333;'>
+			        " & IF(
+			            NOT(ISBLANK(selectedContractor)),
+			            "<b>Contractor: " & selectedContractor & "<br></b>
+			            <b>Quadrant: " & quadrantMeaning & "<br></b>
+			            " & quadrantExplanation,
+			            "<i>Select a contractor to view quadrant insight.</i>"
+			        ) & "
+			    </div>
+			</div>"
+			
+			```
+		lineageTag: dc0c4c11-b141-4c14-8b17-f3cc9919b43b
+
+	measure 'Top N Contractors to Total Budget' = ```
+			
+			VAR TopNValue = 'Top N'[Top N Value]
+			VAR TopTable =
+			    TOPN (
+			        TopNValue,
+			        ALLSELECTED ( 'Contractor with Others' ),
+			        [Total Cost]
+			    )
+			VAR TopContracts =
+			    CALCULATE (                  
+			        [Total Cost],
+			        FILTER(ALLSELECTED ( 'Contractor with Others' ), ('Contractor with Others'[Contractor] IN TopTable))
+			    )
+			VAR TotalCostOverall = CALCULATE([Total Cost], ALL('Contractor with Others'))
+			VAR OtherContracts = TotalCostOverall - TopContracts 
+			VAR CurrentContractor = SELECTEDVALUE('Contractor with Others'[Contractor])
+			RETURN
+			SWITCH(
+			    TRUE(),
+			    CurrentContractor = "Top Contractors", TopContracts,
+			    CurrentContractor = "Others", OtherContracts,
+			    BLANK()
+			)
+			
+			```
+		lineageTag: 1a5c3252-82b0-40b5-b9a4-eb7a02593d45
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Top N Contractors to Total Budget (%)' = ```
+			
+			VAR TopNValue = 'Top N'[Top N Value]
+			VAR TopTable =
+			    TOPN (
+			        'Top N'[Top N Value],
+			        ALLSELECTED ( 'Contractor with Others' ),
+			        [Total Cost]
+			    )
+			VAR TopContracts =
+			    CALCULATE (                  
+			        [Total Cost],
+			        FILTER(ALLSELECTED ( 'Contractor with Others' ), ('Contractor with Others'[Contractor] IN TopTable))
+			    ) 
+			VAR TotalCostOverall = CALCULATE([Total Cost], ALL('Contractor with Others'))
+			
+			VAR OtherContracts = TotalCostOverall - TopContracts 
+			VAR TopContractsPercent = DIVIDE(TopContracts, TotalCostOverall)
+			VAR OtherContractsPercent =  DIVIDE(OtherContracts, TotalCostOverall)
+			VAR CurrentContractor = SELECTEDVALUE('Contractor with Others'[Contractor])
+			
+			RETURN
+			SWITCH(
+			    TRUE(),
+			    CurrentContractor = "Top Contractors", TopContractsPercent,
+			    CurrentContractor = "Others", OtherContractsPercent,
+			    BLANK()
+			)
+			
+			```
+		formatString: 0.00%;-0.00%;0.00%
+		lineageTag: 086d00dc-a343-41b5-839a-3927e9fe76d5
+
+	measure 'Title Percentage Share' = "Budget Share of Top " & 'Top N'[Top N Value] & " out of " & FORMAT([Distinct Contractors], "#,###") & " Contractors"
+		lineageTag: 4a107613-c747-4835-9e47-e9c3f930b375
+
+	measure 'Pareto Total Cost per Contractor' =
+			
+			CALCULATE(
+			    SUM('flood-control-data'[Cost]),
+			    ALLEXCEPT('flood-control-data', 'flood-control-data'[Contractor])
+			)
+		lineageTag: 29390863-b6bf-4f70-b727-f8f48fc472a1
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Pareto Contractor Rank' = ```
+			
+			RANKX(
+			    ALL('flood-control-data'[Contractor]),
+			    [Contractor Total Cost],
+			    ,
+			    DESC,
+			    DENSE
+			)
+			
+			```
+		formatString: 0
+		lineageTag: c5e2f6c2-6291-4e4b-b979-73e899302fd3
+
+	measure 'Pareto Total Contractors' = ```
+			
+			CALCULATE(
+			    DISTINCTCOUNT('flood-control-data'[Contractor]),
+			    ALL('flood-control-data')
+			)
+			
+			```
+		formatString: 0
+		lineageTag: 9dd17aa9-9901-411c-ae9d-dc588d0d9623
+
+	measure 'Pareto Cumulative Cost Share' = ```
+			
+			VAR TotalCost =
+			    CALCULATE(SUM('flood-control-data'[Cost]), ALL('flood-control-data'))
+			VAR CurrentRank = [Pareto Contractor Rank]
+			VAR CumulativeCost =
+			    CALCULATE(
+			        SUM('flood-control-data'[Cost]),
+			        FILTER(
+			            ALL('flood-control-data'),
+			            [Pareto Contractor Rank] <= CurrentRank
+			        )
+			    )
+			RETURN
+			DIVIDE(CumulativeCost, TotalCost)
+			
+			```
+		lineageTag: 72f21244-1b3d-4854-81d3-33d1998bdc20
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Contractor Percentile' = ```
+			
+			DIVIDE([Pareto Contractor Rank], [Pareto Total Contractors])
+			
+			```
+		lineageTag: a7c38e84-a233-4f27-b36a-1fb034c05ca3
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Pareto Contractor Percentile' = ```
+			
+			DIVIDE([Pareto Contractor Rank], [Pareto Total Contractors])
+			
+			```
+		lineageTag: e60ad400-ffe5-467e-b0a4-5ce6070ed57f
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Total Cost Share of Percentile' = ```
+			
+			VAR currPercentile = SELECTEDVALUE('Percentile Reference'[Value])
+			VAR prevPercentile = CALCULATE(MAX('Percentile Reference'[Value]), 'Percentile Reference'[Value] < currPercentile)
+			VAR contractorPercentile= [Distinct Contractors] * currPercentile
+			VAR contractorPercentilePrev= [Distinct Contractors] * prevPercentile
+			VAR topCOntractors = TOPN(contractorPercentile, ALLSELECTED('Contractor with Others'), [Total Cost])
+			VAR topCOntractorsPrev = TOPN(contractorPercentilePrev, ALLSELECTED('Contractor with Others'), [Total Cost])
+			VAR cumulativeCostPrev =
+			    CALCULATE (                  
+			        [Total Cost],
+			        FILTER(ALLSELECTED ( 'Contractor with Others' ), ('Contractor with Others'[Contractor] IN topCOntractorsPrev))
+			     )
+			
+			VAR cumulativeCost =
+			    CALCULATE (                  
+			        [Total Cost],
+			        FILTER(ALLSELECTED ( 'Contractor with Others' ), ('Contractor with Others'[Contractor] IN topCOntractors))
+			     )
+			RETURN
+			cumulativeCost //- cumulativeCostPrev
+			
+			```
+		lineageTag: dcf4d1c3-5a73-4294-944d-b6db28a09d70
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Pointer TopN' = 'Top N'[Top N Value] //[Distinct Contractors]
+		formatString: 0.00%;-0.00%;0.00%
+		lineageTag: 82c6bcf5-e6a1-4c6e-956b-eebc267086e9
+
+	measure 'Top N Contractors Filtered' = ```
+			
+			VAR TopNValue = 'Top N'[Top N Value]
+			VAR TopTable =
+			    TOPN (
+			        TopNValue,
+			        ALLSELECTED ( 'Contractor with Others' ),
+			        [Total Cost]
+			    )
+			VAR TopContracts =
+			    CALCULATE (                  
+			        [Total Cost],
+			        FILTER(ALLSELECTED ( 'Contractor with Others' ), ('Contractor with Others'[Contractor] IN TopTable))
+			    )
+			RETURN
+			IF(
+			    SELECTEDVALUE('Contractor with Others'[Contractor]) IN TopTable,
+			    [Total Cost],
+			    BLANK()
+			)
+			
+			```
+		lineageTag: 779aafed-f2ca-49a6-b20d-a3583387a108
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Color Highlight Top1 Total Cost' = ```
+			
+			VAR selected = SELECTEDVALUE('Region vs Type of Work'[Region vs Type of Work Fields])
+			VAR TopTableRegion = TOPN(1,ALLSELECTED('flood-control-data'[Region]),[Contractor Total Cost])
+			VAR TopTableWork = TOPN(1,ALLSELECTED('flood-control-data'[Type of Work]),[Contractor Total Cost])
+			
+			RETURN
+			IF(
+			    CONTAINSSTRING(selected, "Region"), 
+			    IF(SELECTEDVALUE('flood-control-data'[Region]) IN TopTableRegion, "#A1343C", "#DE6A73"), 
+			    IF(SELECTEDVALUE('flood-control-data'[Type of Work]) IN TopTableWork, "#A1343C", "#DE6A73")
+			)
+			```
+		lineageTag: 1a2cb801-de28-4ed3-866f-aa7f063a1b39
+
+	measure 'Color Highlight Top1 Total Contracts' = ```
+			
+			VAR selected = SELECTEDVALUE('Region vs Type of Work'[Region vs Type of Work Fields])
+			VAR TopTableRegion = TOPN(1,ALLSELECTED('flood-control-data'[Region]),[Contractor Total Contracts])
+			VAR TopTableWork = TOPN(1,ALLSELECTED('flood-control-data'[Type of Work]),[Contractor Total Contracts])
+			
+			RETURN
+			IF(
+			    CONTAINSSTRING(selected, "Region"), 
+			    IF(SELECTEDVALUE('flood-control-data'[Region]) IN TopTableRegion, "#A1343C", "#DE6A73"), 
+			    IF(SELECTEDVALUE('flood-control-data'[Type of Work]) IN TopTableWork, "#A1343C", "#DE6A73")
+			)
+			```
+		lineageTag: 8bf50787-3e88-4491-a2dc-2c6665eecd81
+
+	measure 'Color Highlight Top1 Avg Cost per Contract' = ```
+			
+			VAR selected = SELECTEDVALUE('Region vs Type of Work'[Region vs Type of Work Fields])
+			VAR TopTableRegion = TOPN(1,ALLSELECTED('flood-control-data'[Region]),[Contractor Avg Cost per Contract])
+			VAR TopTableWork = TOPN(1,ALLSELECTED('flood-control-data'[Type of Work]),[Contractor Avg Cost per Contract])
+			
+			RETURN
+			IF(
+			    CONTAINSSTRING(selected, "Region"), 
+			    IF(SELECTEDVALUE('flood-control-data'[Region]) IN TopTableRegion, "#A1343C", "#DE6A73"), 
+			    IF(SELECTEDVALUE('flood-control-data'[Type of Work]) IN TopTableWork, "#A1343C", "#DE6A73")
+			)
+			```
+		lineageTag: 7e96ab2a-5ff1-4205-9475-8c3690be7a9b
+
+	measure 'Color Highlight Top1 Avg Contract Duration' = ```
+			
+			VAR selected = SELECTEDVALUE('Region vs Type of Work'[Region vs Type of Work Fields])
+			VAR TopTableRegion = TOPN(1,ALLSELECTED('flood-control-data'[Region]),[Contractor Avg Contract Duration])
+			VAR TopTableWork = TOPN(1,ALLSELECTED('flood-control-data'[Type of Work]),[Contractor Avg Contract Duration])
+			
+			RETURN
+			IF(
+			    CONTAINSSTRING(selected, "Region"), 
+			    IF(SELECTEDVALUE('flood-control-data'[Region]) IN TopTableRegion, "#A1343C", "#DE6A73"), 
+			    IF(SELECTEDVALUE('flood-control-data'[Type of Work]) IN TopTableWork, "#A1343C", "#DE6A73")
+			)
+			```
+		lineageTag: 56f3e06a-6ffc-4d18-997a-2f9ea98d2ae0
+
+	measure 'Total Cost Share of Percentile Cumulative' = ```
+			
+			VAR currPercentile = SELECTEDVALUE('Percentile Reference'[Value])
+			VAR contractorPercentile= [Distinct Contractors] * currPercentile
+			VAR topCOntractors = TOPN(contractorPercentile, ALLSELECTED('Contractor with Others'), [Total Cost])
+			VAR cumulativeCost =
+			    CALCULATE (                  
+			        [Total Cost],
+			        FILTER(ALLSELECTED ( 'Contractor with Others' ), ('Contractor with Others'[Contractor] IN topCOntractors))
+			     )
+			RETURN
+			cumulativeCost
+			
+			```
+		lineageTag: 6c7ad035-a50c-45f7-a02e-b14592a385b2
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Quadrant Analysis' =
+			
+			VAR x = IF([Contractor Total Contracts] >= [Shade X-Axis], "Right", "Left")
+			VAR y= IF([Contractor Total Cost] >= [Shade Y-Axis], "Top", "Bottom")
+			RETURN
+			SWITCH(
+				TRUE(),
+				x = "Left" && y= "Top", "Q1",
+				x = "Right" && y = "Top", "Q2",
+				x = "Left" && y = "Bottom", "Q3",
+				x = "Right" && y = "Bottom", "Q4"
+			)
+		lineageTag: f305d987-ac84-4ef7-812a-016e63726c8d
+
+	measure '% Share of Top % Contractors to Total Cost' = [Total Cost Share of Percentile] / CALCULATE([Total Cost], ALL('flood-control-data'))
+		formatString: 0%;-0%;0%
+		lineageTag: 534eeac7-a279-47a4-984a-9ed83ea09464
+
+	measure 'HTML Cumulative Budget Summary' = ```
+			
+			VAR distinctContractors = [Distinct Contractors]
+			VAR topfive = ROUND([Distinct Contractors] * 0.05, 0)
+			VAR Part1 =
+			    "<div style='font-family: Segoe UI, Arial, sans-serif; color:#ffffff; line-height:1.6; text-align:justify;'>" &
+			    "<p style='font-size:16px; color:#F0E199; font-weight:600; margin:0 0 10px 0;'>Only 5% of contractors — about "
+			        & FORMAT(topfive, "#,##0") & " out of " & FORMAT(distinctContractors, "#,##0") &
+			    " control around half of the total budget for the Flood Control Project.</p>"
+			
+			VAR Part2 =
+			    "<p style='font-size:14px; margin:0 0 10px 0;'>This extreme concentration of public funds in the hands of a few contractors raises serious concerns about <strong>fairness, competition, and accountability</strong> in government procurement.</p>"
+			
+			VAR Part3 =
+			    "<p style='font-size:14px; margin:0 0 0 0;'>A concentration of budget among a small number of contractors is a <strong>red flag</strong> for potential corruption, or systemic imbalance. It may indicate limited competition, preferential awarding, or sketchy procurement practices that could undermine the effectiveness of flood control initiatives.</p>" &
+			    "</div>"
+			
+			RETURN
+			    Part1 & Part2 & Part3
+			
+			```
+		lineageTag: 49cbca51-76a4-41c2-a366-d140ec71c407
+
+	measure 'HTML Footer' = ```
+			
+			VAR Footer =
+			    "<div style='font-family: Segoe UI, Arial, sans-serif; font-size:16px; color:#cccccc; text-align:center; line-height:1.6; padding:8px 0; border-top:1px solid #444;'>"
+			
+			        // --- Data Source Section ---
+			        & "<p style='margin:4px 0;'>Data Sources from "
+			        & "<a href='https://sumbongsapangulo.ph/' style='color:#ffffff; text-decoration:none;'>sumbongsapangulo.ph</a> | "
+			        & "<a href='https://www.kaggle.com/datasets/bwandowando/dpwh-flood-control-projects' style='color:#ffffff; text-decoration:none;'>Kaggle Flood Control Dataset</a>"
+			        & "</p>"
+			
+			        // --- Social Icons Section ---
+			        & "<p style='margin:6px 0;'>"
+			        & "<a href='https://www.linkedin.com/in/darren-rey-adtoon-85a42021a/' target='_blank' style='margin-right:10px; text-decoration:none;'>"
+			        & "<img src='https://cdn-icons-png.flaticon.com/512/174/174857.png' width='16' height='16' style='vertical-align:middle; margin-right:4px;' />"
+			        & "LinkedIn</a>"
+			        & "<a href='https://github.com/deuterium06' target='_blank' style='text-decoration:none;'>"
+			        & "<img src='https://cdn-icons-png.flaticon.com/512/25/25231.png' width='16' height='16' style='vertical-align:middle; margin-right:4px;' />"
+			        & "GitHub</a>"
+			        & "  | © " & YEAR(TODAY()) & " Blood Money Trail</p>"
+			    & "</div>"
+			
+			RETURN
+			    Footer
+			
+			```
+		lineageTag: 4cf9e3a5-33de-4962-83b9-877bd5f59abe
+
+	measure 'Date Today' = FORMAT(TODAY(), "MMMM DD, YYYY")
+		lineageTag: 69d65a07-7006-4efb-93ac-4ec546a5486f
+
+	column 'Project Description'
+		dataType: string
+		lineageTag: 3c49c1d4-fd50-4aef-a76f-8af92f097246
+		summarizeBy: none
+		sourceColumn: Project Description
+
+		annotation SummarizationSetBy = Automatic
+
+	column Province
+		dataType: string
+		lineageTag: 1e6a3fb9-8cc7-4fd9-bae0-8436434bf542
+		summarizeBy: none
+		sourceColumn: Province
+
+		annotation SummarizationSetBy = Automatic
+
+	column Contractor
+		dataType: string
+		lineageTag: 050f014f-4b4f-4710-9db3-3103ea6d83f0
+		summarizeBy: none
+		sourceColumn: Contractor
+
+		annotation SummarizationSetBy = Automatic
+
+	column Cost
+		dataType: double
+		formatString: "₱"#,0.00;-"₱"#,0.00;"₱"#,0.00
+		lineageTag: d8fce1d4-f1b0-4b0b-9232-182849b2eeeb
+		summarizeBy: sum
+		sourceColumn: Cost
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"ceb-Latn-PH"}
+
+	column 'Completion Date'
+		dataType: dateTime
+		formatString: Short Date
+		lineageTag: 24fc3f54-5a74-4a59-87c3-c538e59b6039
+		summarizeBy: none
+		sourceColumn: Completion Date
+
+		variation Variation
+			isDefault
+			relationship: 83a14859-249d-4697-9b2b-b71b8c462de8
+			defaultHierarchy: LocalDateTable_0e88e781-5fac-4059-8576-1a397a1fc8b3.'Date Hierarchy'
+
+		changedProperty = DataType
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Start Date'
+		dataType: dateTime
+		formatString: Short Date
+		lineageTag: 43abc8e4-1f59-48f1-9cda-51d22137cc54
+		summarizeBy: none
+		sourceColumn: Start Date
+
+		variation Variation
+			isDefault
+			relationship: 9a5ffd26-e4ac-4e83-bf79-b086cdf17bc8
+			defaultHierarchy: LocalDateTable_b9936bca-6075-4b13-920f-3c9e3ab91c58.'Date Hierarchy'
+
+		changedProperty = DataType
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column Region
+		dataType: string
+		lineageTag: 2779587e-b713-4922-8ad0-b3c4178c5109
+		summarizeBy: none
+		sourceColumn: Region
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Contract ID'
+		dataType: string
+		lineageTag: 89000c9f-2693-4a26-985c-77494a7364f0
+		summarizeBy: none
+		sourceColumn: Contract ID
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Type of Work'
+		dataType: string
+		lineageTag: 44e5f18a-63c0-409b-afa1-c09ae29cb384
+		summarizeBy: none
+		sourceColumn: Type of Work
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Fiscal Year'
+		dataType: string
+		lineageTag: e204f22c-fddd-44d0-98cb-6ddbb0062343
+		summarizeBy: none
+		sourceColumn: Fiscal Year
+
+		annotation SummarizationSetBy = Automatic
+
+	column Latitude
+		dataType: double
+		lineageTag: 30bca4df-d823-481d-814e-ffd41110f7be
+		dataCategory: Latitude
+		summarizeBy: none
+		sourceColumn: Latitude
+
+		annotation SummarizationSetBy = User
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Longitude
+		dataType: double
+		lineageTag: 0041ba78-805a-45e2-8d74-8c0a3f11b9b3
+		dataCategory: Longitude
+		summarizeBy: none
+		sourceColumn: Longitude
+
+		annotation SummarizationSetBy = User
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Country = "Philippines"
+		lineageTag: f3719a5c-3671-4e9d-aeeb-62c8dd37ba5f
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Contract Cat' =
+			
+			VAR rankProv = RANKX(ALL('flood-control-data'), CALCULATE([Average Cost per Contract], ALLEXCEPT('flood-control-data', 'flood-control-data'[Contractor])),,DESC,Dense)
+			RETURN
+			IF(rankProv <= 5, [Contractor], "Others")
+		lineageTag: b403c2c0-aa88-4892-a1d2-c66f0354d3be
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Contract Duration' = DATEDIFF('flood-control-data'[Start Date], 'flood-control-data'[Completion Date], DAY)
+		formatString: 0
+		lineageTag: a6de252f-019a-4356-b35b-ea8c1e624175
+		summarizeBy: sum
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Project Cost Flag' = ```
+			
+			VAR CurrentWorkType = 'flood-control-data'[Type of Work]
+			VAR CurrentCost = 'flood-control-data'[Cost]
+			VAR AvgCostByWorkType =
+			    CALCULATE(
+			        AVERAGE('flood-control-data'[Cost]),
+			        FILTER(ALL('flood-control-data'),[Type of Work] = CurrentWorkType)
+			    )
+			VAR CurCostRatio = CurrentCost / AvgCostByWorkType 
+			RETURN
+			SWITCH(
+			    TRUE(),
+			    CurCostRatio > 3, "Critical",
+			    CurCostRatio >= 1.5 && CurCostRatio <= 3, "High",
+			    CurCostRatio >= 0.8 && CurCostRatio <= 1.5, "Average",
+			    CurCostRatio < 0.8, "Below Average"
+			)
+			
+			```
+		lineageTag: e452ea00-ad20-40b2-8a2d-e06549645806
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Project Cost Flag test' = ```
+			
+			VAR CurrentWorkType = 'flood-control-data'[Type of Work]
+			VAR CurrentCost = 'flood-control-data'[Cost]
+			VAR AvgCostByWorkType =
+			    CALCULATE(
+			        AVERAGE('flood-control-data'[Cost]),
+			        FILTER(ALL('flood-control-data'),[Type of Work] = CurrentWorkType)
+			    )
+			VAR CurCostRatio = CurrentCost / AvgCostByWorkType 
+			RETURN
+			AvgCostByWorkType
+			
+			```
+		lineageTag: ed8c1aeb-cac3-40a6-9fbd-2112c4fe6f4c
+		summarizeBy: sum
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column ContractId
+		dataType: string
+		lineageTag: cd2dd447-dbb6-43b5-8d91-7c2ae19bf621
+		summarizeBy: none
+		sourceColumn: ContractId
+
+		annotation SummarizationSetBy = Automatic
+
+	column LegislativeDistrict
+		dataType: string
+		lineageTag: bf26909d-cab0-448e-a567-ad396fb5a463
+		summarizeBy: none
+		sourceColumn: LegislativeDistrict
+
+		annotation SummarizationSetBy = Automatic
+
+	column Municipality
+		dataType: string
+		lineageTag: 1f4e2af0-7d10-431b-9f74-fa3aba319365
+		summarizeBy: none
+		sourceColumn: Municipality
+
+		annotation SummarizationSetBy = Automatic
+
+	column DistrictEngineeringOffice
+		dataType: string
+		lineageTag: 5aeac988-a173-4d3f-bbbd-8a3d85d88330
+		summarizeBy: none
+		sourceColumn: DistrictEngineeringOffice
+
+		annotation SummarizationSetBy = Automatic
+
+	column ApprovedBudgetForContract
+		dataType: string
+		lineageTag: 1024c3e5-a213-4585-bead-73134ecf69cb
+		summarizeBy: none
+		sourceColumn: ApprovedBudgetForContract
+
+		annotation SummarizationSetBy = Automatic
+
+	partition flood-control-data = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\Users\darren.adtoon\Documents\flood-proj\flood-control-data_cleaned.csv"),[Delimiter=",", Columns=17, Encoding=1252, QuoteStyle=QuoteStyle.None]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"Project Description", type text}, {"Province", type text}, {"Contractor", type text}, {"Cost", type number}, {"Completion Date", type text}, {"Start Date", type text}, {"Region", type text}, {"Contract ID", type text}, {"Type of Work", type text}, {"Fiscal Year", type text}, {"ContractId", type text}, {"LegislativeDistrict", type text}, {"Municipality", type text}, {"DistrictEngineeringOffice", type text}, {"ApprovedBudgetForContract", type text}, {"Latitude", type number}, {"Longitude", type number}})
+				in
+				    #"Changed Type"
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

@@ -1,0 +1,43 @@
+table contractors-contract-type
+	lineageTag: c7e9e378-32a0-4870-bd21-8a70abb3e80f
+
+	column 'Contract ID'
+		dataType: string
+		lineageTag: 4f35bb47-71d9-4423-8421-0d9535caf9f4
+		summarizeBy: none
+		sourceColumn: Contract ID
+
+		annotation SummarizationSetBy = Automatic
+
+	column Contractor
+		dataType: string
+		lineageTag: f62f7647-4077-4b9f-b052-87fe2c9b3b2f
+		summarizeBy: none
+		sourceColumn: Contractor
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Contract Type'
+		dataType: string
+		lineageTag: 542686cb-923e-48ec-8ad7-17289ecc6beb
+		summarizeBy: none
+		sourceColumn: Contract Type
+
+		annotation SummarizationSetBy = Automatic
+
+	partition contractors-contract-type = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\Users\darren.adtoon\Documents\flood-proj\flood-control-data_contractors.csv"),[Delimiter=",", Columns=3, Encoding=65001, QuoteStyle=QuoteStyle.None]),
+				    #"Changed Type" = Table.TransformColumnTypes(Source,{{"Column1", type text}, {"Column2", type text}, {"Column3", type text}}),
+				    #"Promoted Headers" = Table.PromoteHeaders(#"Changed Type", [PromoteAllScalars=true]),
+				    #"Changed Type1" = Table.TransformColumnTypes(#"Promoted Headers",{{"Contract ID", type text}, {"Contractor", type text}, {"Contract Type", type text}}),
+				    #"Capitalized Each Word" = Table.TransformColumns(#"Changed Type1",{{"Contractor", Text.Proper, type text}})
+				in
+				    #"Capitalized Each Word"
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+
